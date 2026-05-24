@@ -13,7 +13,7 @@
 # Route the Discord interactions endpoint to bot.py
 [[redirects]]
   from = "/api/discord/interactions"
-  to = "/.netlify/functions/bot"
+  to = "/.netlify/functions/discord-interactions"
   status = 200
   force = true
 
