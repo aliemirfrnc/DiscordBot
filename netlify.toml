@@ -6,10 +6,17 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
-# Discord interaction endpoint
-# The function itself declares path = "/api/discord/interactions" via its
-# exported config object, so no extra routing rules are needed here.
-#
+# Python runtime for the Discord interaction handler
+[functions."bot"]
+  runtime = "python3.9"
+
+# Route the Discord interactions endpoint to bot.py
+[[redirects]]
+  from = "/api/discord/interactions"
+  to = "/.netlify/functions/bot"
+  status = 200
+  force = true
+
 # Required environment variables (set in Netlify → Site config → Environment variables):
 #
 #   DISCORD_PUBLIC_KEY
