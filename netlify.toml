@@ -1,0 +1,23 @@
+[build]
+  # No static site to publish — this project is a Discord bot served entirely
+  # through Netlify Functions. The publish directory is left as default.
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Discord interaction endpoint
+# The function itself declares path = "/api/discord/interactions" via its
+# exported config object, so no extra routing rules are needed here.
+#
+# Required environment variables (set in Netlify → Site config → Environment variables):
+#
+#   DISCORD_PUBLIC_KEY
+#     The Application Public Key from Discord Developer Portal.
+#     Used to verify Ed25519 signatures on every incoming interaction request.
+#     Scope: Functions (Runtime)
+#
+#   DISCORD_TOKEN
+#     The bot token from Discord Developer Portal → Bot → Token.
+#     Used for follow-up REST API calls after responding to interactions.
+#     Scope: Functions (Runtime)
