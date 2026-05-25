@@ -656,7 +656,5 @@ class Moderation(commands.Cog, name="Moderasyon"):
 
 
 async def setup(bot: commands.Bot):
-    cog = Moderation(bot)
-    # App command grubunu tree'ye ekle
-    bot.tree.add_command(cog.settings_group)
-    await bot.add_cog(cog)
+    # Cog'u ekle, otomatik olarak komutları da tree'ye ekler
+    await bot.add_cog(Moderation(bot))
