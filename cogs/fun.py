@@ -393,7 +393,7 @@ class Fun(commands.Cog, name="Eğlence & Genel"):
     # ── BOT BİLGİ ────────────────────────────────────────────────────────
 
     @app_commands.command(name="botbilgi", description="Bot hakkında bilgi verir.")
-    async def bot_info(self, interaction: discord.Interaction):
+    async def get_bot_info(self, interaction: discord.Interaction):
         await interaction.response.defer()
         embed = discord.Embed(
             title=f"🤖 {self.bot.user.name} Hakkında",
