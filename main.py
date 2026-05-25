@@ -77,7 +77,8 @@ class DiscordBot(commands.Bot):
         print(f"\n[BOT] {len(loaded)} Cog yüklendi, {len(failed)} başarısız.")
         
         try:
-            synced = await self.tree.sync()
+            # Komutları Discord'a "zorla" tekrar yükletiyoruz
+            synced = await self.tree.sync() 
             print(f"[BOT] {len(synced)} slash komutu global olarak sync edildi.")
         except Exception as e:
             print(f"[BOT] Slash sync hatası: {e}")
