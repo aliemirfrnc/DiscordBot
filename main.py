@@ -1,10 +1,3 @@
-"""
-main.py
-Botun ana giriş noktası.
-Prefix + Slash (app_commands) hibrit yapısı.
-Tüm Cog'ları yükler, veritabanını başlatır, slash komutlarını sync eder.
-"""
-
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -13,32 +6,25 @@ import asyncio
 import datetime
 from dotenv import load_dotenv
 
-load_dotenv()
+# .env dosyasını zorla yükle
+load_dotenv(override=True)
 
-TOKEN  = os.getenv("DISCORD_TOKEN")
+TOKEN = os.getenv("DISCORD_TOKEN")
 PREFIX = os.getenv("PREFIX", "!")
 
-if not TOKEN or TOKEN == "your_token_here":
-    raise ValueError(
-        "[HATA] DISCORD_TOKEN .env dosyasında ayarlanmamış!\n"
-        ".env dosyasını açıp DISCORD_TOKEN=<token_buraya> satırını ekle."
-    )
+# Token kontrolü
+if not TOKEN:
+    raise ValueError("[HATA] .env dosyasında DISCORD_TOKEN bulunamadı!")
 
-# ─────────────────────────────────────────────
 # INTENT AYARLARI
-# ─────────────────────────────────────────────
 intents = discord.Intents.default()
 intents.message_content = True
-intents.members         = True
-intents.guilds          = True
-intents.voice_states    = True
-intents.bans            = True
-intents.invites         = True
+intents.members = True
+intents.guilds = True
+intents.voice_states = True
+intents.bans = True
+intents.invites = True
 
-
-# ─────────────────────────────────────────────
-# BOT SINIFI
-# ─────────────────────────────────────────────
 class DiscordBot(commands.Bot):
     def __init__(self):
         super().__init__(
@@ -63,12 +49,7 @@ class DiscordBot(commands.Bot):
             return default
 
     async def setup_hook(self):
-        """
-        Discord'a bağlanmadan önce asenkron kurulum:
-        Veritabanı init → Cog yükleme → Slash komut sync.
-        """
         print("[BOT] Kurulum başlıyor...")
-
         from database import db
         await db.init_db()
 
@@ -94,12 +75,7 @@ class DiscordBot(commands.Bot):
                 print(f"  ❌ Yüklenemedi: {cog} → {e}")
 
         print(f"\n[BOT] {len(loaded)} Cog yüklendi, {len(failed)} başarısız.")
-        if failed:
-            print(f"[BOT] Başarısız Cog'lar: {', '.join(failed)}")
-
-        # Slash komutlarını global sync et
-        # İlk defa çalıştırıldığında 1 saate kadar sürebilir.
-        # Hızlı test için: await self.tree.sync(guild=discord.Object(id=GUILD_ID))
+        
         try:
             synced = await self.tree.sync()
             print(f"[BOT] {len(synced)} slash komutu global olarak sync edildi.")
@@ -108,40 +84,12 @@ class DiscordBot(commands.Bot):
 
     async def on_ready(self):
         print(f"\n[BOT] ✅ {self.user} olarak bağlandı!")
-        print(f"[BOT] 🏁 Başlangıç süresi: "
-              f"{(datetime.datetime.utcnow() - self.start_time).total_seconds():.2f}s")
+        print(f"[BOT] 🏁 Başlangıç süresi: {(datetime.datetime.utcnow() - self.start_time).total_seconds():.2f}s")
 
-    async def on_error(self, event_method: str, *args, **kwargs):
-        import traceback
-        print(f"[HATA] '{event_method}' olayında istisna:")
-        traceback.print_exc()
-
-
-# ─────────────────────────────────────────────
-# BOTU ÇALIŞTIR
-# ─────────────────────────────────────────────
 async def main():
     bot = DiscordBot()
-    try:
-        print(f"[BOT] Discord'a bağlanılıyor... (prefix: {PREFIX})")
-        async with bot:
-            await bot.start(TOKEN)
-    except discord.LoginFailure:
-        print("\n[HATA] Geçersiz token! .env dosyandaki DISCORD_TOKEN değerini kontrol et.")
-    except discord.PrivilegedIntentsRequired:
-        print(
-            "\n[HATA] Privileged Intent eksik!\n"
-            "Discord Developer Portal → Bot → Privileged Gateway Intents:\n"
-            "  ✅ SERVER MEMBERS INTENT\n"
-            "  ✅ MESSAGE CONTENT INTENT\n"
-        )
-    except KeyboardInterrupt:
-        print("\n[BOT] Kapatılıyor...")
-    except Exception as e:
-        import traceback
-        print(f"\n[HATA] Beklenmeyen hata: {e}")
-        traceback.print_exc()
-
+    async with bot:
+        await bot.start(TOKEN)
 
 if __name__ == "__main__":
     asyncio.run(main())
