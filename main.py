@@ -23,14 +23,9 @@ class DiscordBot(commands.Bot):
         self.start_time = datetime.datetime.utcnow()
 
     async def setup_hook(self):
-        async def setup_hook(self):
-        print("[BOT] Slash komutları gönderiliyor...")
-        # Bütün sunucular için komutları senkronize et
-        synced = await self.tree.sync()
-        print(f"[BOT] {len(synced)} adet komut senkronize edildi!")
         print("[BOT] Kurulum başlıyor...")
         
-        # Cog yükleme işlemi
+        # 1. Önce Cog'ları yükle
         cogs = ["cogs.error_handler", "cogs.events", "cogs.moderation", "cogs.music", "cogs.economy", "cogs.games", "cogs.leveling", "cogs.fun"]
         for cog in cogs:
             try:
@@ -39,13 +34,16 @@ class DiscordBot(commands.Bot):
             except Exception as e:
                 print(f"  ❌ Yüklenemedi: {cog} → {e}")
 
-        # DB Başlatma
+        # 2. Veritabanını başlat
         from database import db
         await db.init_db()
 
-        # SLASH KOMUTLARI SENKRONİZASYONU (Sihirli dokunuş burada)
-        await self.tree.sync() 
-        print("[BOT] Slash komutları senkronize edildi!")
+        # 3. Slash komutlarını senkronize et
+        try:
+            synced = await self.tree.sync()
+            print(f"[BOT] {len(synced)} adet Slash komutu senkronize edildi!")
+        except Exception as e:
+            print(f"[HATA] Senkronizasyon başarısız: {e}")
 
 async def main():
     bot = DiscordBot()
