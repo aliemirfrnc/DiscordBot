@@ -40,7 +40,9 @@ class Leveling(commands.Cog, name="Seviyeler"):
         """
         if message.author.bot or not message.guild:
             return
-        if message.content.startswith(self.bot.command_prefix):
+        # Eski hali: if message.content.startswith(self.bot.command_prefix):
+# Yeni hali:
+        if message.content.startswith(self.bot.command_prefix if isinstance(self.bot.command_prefix, str) else "!"):
             return  # Komutlarda XP kazanılmasın
 
         user_id  = message.author.id
