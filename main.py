@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
-# Slash komutları için intent yeterli, message_content'e bile gerek kalmayabilir ama kalsın
 intents = discord.Intents.default()
 intents.message_content = True 
 intents.members = True
@@ -17,7 +16,7 @@ intents.members = True
 class DiscordBot(commands.Bot):
     def __init__(self):
         super().__init__(
-            command_prefix="!", # Hala eski komutlar çalışsın diye dursun
+            command_prefix="!", 
             intents=intents,
             help_command=None
         )
@@ -25,13 +24,8 @@ class DiscordBot(commands.Bot):
 
     async def setup_hook(self):
         print("[BOT] Kurulum başlıyor...")
-        # Slash komutlarını Discord'a gönderiyoruz
-        await self.tree.sync() 
-        print("[BOT] Slash komutları senkronize edildi!")
         
-        from database import db
-        await db.init_db()
-
+        # Cog yükleme işlemi
         cogs = ["cogs.error_handler", "cogs.events", "cogs.moderation", "cogs.music", "cogs.economy", "cogs.games", "cogs.leveling", "cogs.fun"]
         for cog in cogs:
             try:
@@ -40,7 +34,19 @@ class DiscordBot(commands.Bot):
             except Exception as e:
                 print(f"  ❌ Yüklenemedi: {cog} → {e}")
 
+        # DB Başlatma
+        from database import db
+        await db.init_db()
+
+        # SLASH KOMUTLARI SENKRONİZASYONU (Sihirli dokunuş burada)
+        await self.tree.sync() 
+        print("[BOT] Slash komutları senkronize edildi!")
+
+async def main():
+    bot = DiscordBot()
+    async with bot:
+        await bot.start(TOKEN)
+
 if __name__ == "__main__":
     keep_alive.keep_alive()
-    bot = DiscordBot()
-    bot.run(TOKEN)
+    asyncio.run(main())
