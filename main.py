@@ -34,7 +34,7 @@ class DiscordBot(commands.Bot):
             case_insensitive=True,
             strip_after_prefix=True,
         )
-        self.start_time = datetime.datetime.utcnow()
+        self.start_time = datetime.datetime.now(datetime.timezone.utc)
 
     async def _get_prefix(self, bot: commands.Bot, message: discord.Message) -> list:
         default = [PREFIX]
@@ -85,7 +85,7 @@ class DiscordBot(commands.Bot):
 
     async def on_ready(self):
         print(f"\n[BOT] ✅ {self.user} olarak bağlandı!")
-        print(f"[BOT] 🏁 Başlangıç süresi: {(datetime.datetime.utcnow() - self.start_time).total_seconds():.2f}s")
+        print(f"[BOT] 🏁 Başlangıç süresi: {(datetime.datetime.now(datetime.timezone.utc) - self.start_time).total_seconds():.2f}s")
     async def on_message(self, message):
         # Bot kendi mesajlarına veya diğer botlara cevap vermesin
         if message.author.bot:
