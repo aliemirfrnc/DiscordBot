@@ -9,6 +9,7 @@ from discord.ext import commands
 import os
 import asyncio
 import datetime
+import keep_alive
 from dotenv import load_dotenv
 
 # .env dosyasını yükle — TOKEN ve PREFIX buradan gelir
@@ -163,4 +164,5 @@ async def main():
 
 
 if __name__ == "__main__":
+    keep_alive.keep_alive()
     asyncio.run(main())
