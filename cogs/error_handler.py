@@ -1,11 +1,11 @@
 """
 cogs/error_handler.py
-Tüm hataları merkezi olarak yakalayan ve kullanıcıya anlaşılır mesajlar gösteren Cog.
-Bot bu sayede beklenmedik hatalar yüzünden çökmez.
+Prefix komutları ve slash komutları için merkezi hata yönetimi.
 """
 
 import discord
 from discord.ext import commands
+from discord import app_commands
 import traceback
 import sys
 
@@ -17,130 +17,137 @@ class ErrorHandler(commands.Cog, name="Hata Yöneticisi"):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        # Slash komut hata yakalayıcısını tree'ye bağla
+        bot.tree.on_error = self.on_app_command_error
 
+    # ── PREFIX KOMUT HATALARI ─────────────────────────────────────────────
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context,
                                error: commands.CommandError):
-        """
-        Tüm komut hatalarını yakalar.
-        Her hata türü için kullanıcıya uygun bir mesaj gönderir.
-        """
-        # Eğer komutun kendi hata işleyicisi varsa, onu kullan
         if hasattr(ctx.command, "on_error"):
             return
-
-        # Eğer Cog'un kendi hata işleyicisi varsa, onu kullan
         if ctx.cog and ctx.cog.has_error_handler():
             return
 
-        # Hatayı orijinal haline getir (wrapped ise)
         error = getattr(error, "original", error)
 
-        # ── Komut Bulunamadı ──────────────────────────────
         if isinstance(error, commands.CommandNotFound):
-            return  # Sessizce geç, her yanlış yazımda spam olmasın
+            return
 
-        # ── Yetki Hatası ─────────────────────────────────
         elif isinstance(error, commands.MissingPermissions):
             perms = ", ".join(error.missing_permissions)
-            embed = error_embed(
+            await ctx.send(embed=error_embed(
                 "Yetersiz Yetki",
-                f"Bu komutu kullanmak için şu izinlere ihtiyacın var:\n`{perms}`"
-            )
-            await ctx.send(embed=embed, delete_after=10)
+                f"Bu komutu kullanmak için gerekli izinler:\n`{perms}`"
+            ), delete_after=10)
 
-        # ── Bot'un Yetkisi Yok ───────────────────────────
         elif isinstance(error, commands.BotMissingPermissions):
             perms = ", ".join(error.missing_permissions)
-            embed = error_embed(
+            await ctx.send(embed=error_embed(
                 "Bot Yetersiz Yetki",
-                f"Bu işlemi yapabilmem için şu izinlere ihtiyacım var:\n`{perms}`"
-            )
-            await ctx.send(embed=embed, delete_after=10)
+                f"Bu işlem için şu izinlere ihtiyacım var:\n`{perms}`"
+            ), delete_after=10)
 
-        # ── Sadece Sunucuda Kullanılabilir ───────────────
         elif isinstance(error, commands.NoPrivateMessage):
-            embed = error_embed(
+            await ctx.author.send(embed=error_embed(
                 "Sunucu Gerekli",
-                "Bu komut yalnızca sunucularda kullanılabilir, DM'de değil."
-            )
-            await ctx.author.send(embed=embed)
+                "Bu komut yalnızca sunucularda kullanılabilir."
+            ))
 
-        # ── Üye Bulunamadı ───────────────────────────────
         elif isinstance(error, commands.MemberNotFound):
-            embed = error_embed(
+            await ctx.send(embed=error_embed(
                 "Üye Bulunamadı",
                 f"**{error.argument}** adında bir üye bulunamadı."
-            )
-            await ctx.send(embed=embed, delete_after=10)
+            ), delete_after=10)
 
-        # ── Eksik Argüman ────────────────────────────────
         elif isinstance(error, commands.MissingRequiredArgument):
-            embed = error_embed(
+            await ctx.send(embed=error_embed(
                 "Eksik Argüman",
-                f"Komutu kullanmak için `{error.param.name}` parametresini girmelisin.\n"
-                f"Kullanım: `{ctx.prefix}{ctx.command.qualified_name} "
-                f"{ctx.command.signature}`"
-            )
-            await ctx.send(embed=embed, delete_after=15)
+                f"`{error.param.name}` parametresini girmelisin.\n"
+                f"Kullanım: `{ctx.prefix}{ctx.command.qualified_name} {ctx.command.signature}`"
+            ), delete_after=15)
 
-        # ── Yanlış Argüman Tipi ───────────────────────────
         elif isinstance(error, commands.BadArgument):
-            embed = error_embed(
+            await ctx.send(embed=error_embed(
                 "Hatalı Argüman",
-                f"Girdiğin değer hatalı. `{ctx.prefix}yardım {ctx.command.qualified_name}` "
-                f"komutuna bakabilirsin."
-            )
-            await ctx.send(embed=embed, delete_after=10)
+                f"`{ctx.prefix}yardım {ctx.command.qualified_name}` ile kullanıma bakabilirsin."
+            ), delete_after=10)
 
-        # ── Cooldown (Bekleme Süresi) ─────────────────────
         elif isinstance(error, commands.CommandOnCooldown):
-            embed = error_embed(
+            await ctx.send(embed=error_embed(
                 "Bekleme Süresi",
-                f"Bu komutu çok sık kullandın! "
                 f"**{error.retry_after:.1f} saniye** sonra tekrar dene."
-            )
-            await ctx.send(embed=embed, delete_after=10)
+            ), delete_after=10)
 
-        # ── Kontrol Hatası (Check Failure) ───────────────
         elif isinstance(error, commands.CheckFailure):
-            embed = error_embed(
+            await ctx.send(embed=error_embed(
                 "Erişim Reddedildi",
                 "Bu komutu kullanma yetkin yok."
-            )
-            await ctx.send(embed=embed, delete_after=10)
+            ), delete_after=10)
 
-        # ── Kanal Bulunamadı ──────────────────────────────
         elif isinstance(error, commands.ChannelNotFound):
-            embed = error_embed(
+            await ctx.send(embed=error_embed(
                 "Kanal Bulunamadı",
                 f"**{error.argument}** adında bir kanal bulunamadı."
-            )
-            await ctx.send(embed=embed, delete_after=10)
+            ), delete_after=10)
 
-        # ── Rol Bulunamadı ────────────────────────────────
         elif isinstance(error, commands.RoleNotFound):
-            embed = error_embed(
+            await ctx.send(embed=error_embed(
                 "Rol Bulunamadı",
                 f"**{error.argument}** adında bir rol bulunamadı."
-            )
-            await ctx.send(embed=embed, delete_after=10)
+            ), delete_after=10)
 
-        # ── Beklenmeyen Hatalar ───────────────────────────
         else:
-            embed = error_embed(
+            await ctx.send(embed=error_embed(
                 "Beklenmeyen Hata",
-                f"Beklenmedik bir hata oluştu. Geliştiriciye bildir.\n"
-                f"```{type(error).__name__}: {error}```"
-            )
-            await ctx.send(embed=embed, delete_after=30)
-            # Hatayı konsola da yazdır (geliştiriciler için)
-            print(f"[HATA] '{ctx.command}' komutunda işlenmemiş hata:",
-                  file=sys.stderr)
-            traceback.print_exception(type(error), error, error.__traceback__,
-                                      file=sys.stderr)
+                f"Beklenmedik bir hata oluştu.\n"
+                f"```{type(error).__name__}: {str(error)[:200]}```"
+            ), delete_after=30)
+            print(f"[HATA] '{ctx.command}' komutunda işlenmemiş hata:", file=sys.stderr)
+            traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+
+    # ── SLASH KOMUT HATALARI ──────────────────────────────────────────────
+    async def on_app_command_error(self,
+                                   interaction: discord.Interaction,
+                                   error: app_commands.AppCommandError):
+        """Slash komut hatalarını yakalar."""
+
+        async def send_error(title: str, desc: str):
+            embed = error_embed(title, desc)
+            try:
+                if interaction.response.is_done():
+                    await interaction.followup.send(embed=embed, ephemeral=True)
+                else:
+                    await interaction.response.send_message(embed=embed, ephemeral=True)
+            except Exception:
+                pass
+
+        error = getattr(error, "original", error)
+
+        if isinstance(error, app_commands.MissingPermissions):
+            perms = ", ".join(error.missing_permissions)
+            await send_error("Yetersiz Yetki", f"Gerekli izinler:\n`{perms}`")
+
+        elif isinstance(error, app_commands.BotMissingPermissions):
+            perms = ", ".join(error.missing_permissions)
+            await send_error("Bot Yetersiz Yetki", f"Gerekli izinlerim:\n`{perms}`")
+
+        elif isinstance(error, app_commands.CommandOnCooldown):
+            await send_error("Bekleme Süresi",
+                             f"**{error.retry_after:.1f} saniye** sonra tekrar dene.")
+
+        elif isinstance(error, app_commands.CheckFailure):
+            await send_error("Erişim Reddedildi", "Bu komutu kullanma yetkin yok.")
+
+        elif isinstance(error, app_commands.NoPrivateMessage):
+            await send_error("Sunucu Gerekli", "Bu komut yalnızca sunucularda kullanılabilir.")
+
+        else:
+            await send_error("Beklenmeyen Hata",
+                             f"```{type(error).__name__}: {str(error)[:200]}```")
+            print(f"[HATA] Slash komut hatası ({interaction.command}):", file=sys.stderr)
+            traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
 
 async def setup(bot: commands.Bot):
-    """Cog'u bota yükle."""
     await bot.add_cog(ErrorHandler(bot))
