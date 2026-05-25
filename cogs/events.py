@@ -17,14 +17,9 @@ class Events(commands.Cog, name="Olaylar"):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    # ─────────────────────────────────────────────
-    # BOT HAZIR
-    # ─────────────────────────────────────────────
-
     @commands.Cog.listener()
     async def on_ready(self):
-        """Bot Discord'a başarıyla bağlandığında çalışır."""
-        guild_count = len(self.bot.guilds)
+        guild_count  = len(self.bot.guilds)
         member_count = sum(g.member_count for g in self.bot.guilds)
 
         print("=" * 50)
@@ -34,44 +29,31 @@ class Events(commands.Cog, name="Olaylar"):
         print(f"  📡 Gecikme: {round(self.bot.latency * 1000)}ms")
         print("=" * 50)
 
-        # Bot durumunu ayarla — sunucu sayısını göster
         activity = discord.Activity(
             type=discord.ActivityType.watching,
-            name=f"{guild_count} sunucu | !yardım"
+            name=f"{guild_count} sunucu | /yardım"
         )
-        await self.bot.change_presence(
-            status=discord.Status.online,
-            activity=activity
-        )
-
-    # ─────────────────────────────────────────────
-    # SUNUCUYA KATILMA / AYRILMA
-    # ─────────────────────────────────────────────
+        await self.bot.change_presence(status=discord.Status.online, activity=activity)
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild):
-        """Bot yeni bir sunucuya eklendiğinde çalışır."""
-        print(f"[+] Yeni sunucuya katıldı: {guild.name} (ID: {guild.id}) "
-              f"| {guild.member_count} üye")
+        print(f"[+] Yeni sunucuya katıldı: {guild.name} (ID: {guild.id}) | {guild.member_count} üye")
 
-        # Sunucu ayarlarını veritabanına kaydet
         from database import db
         await db.get_guild_settings(guild.id)
 
-        # Botu ekleyen kişiye veya sistem kanalına hoş geldin mesajı gönder
         embed = discord.Embed(
             title="👋 Merhaba! Ben buradayım!",
             description=(
                 "Beni sunucunuza eklediğiniz için teşekkürler!\n\n"
-                "📌 **Prefix:** `!`\n"
-                "📖 **Tüm komutlar:** `!yardım`\n\n"
+                "📌 **Slash Komutlar:** `/` yazarak tüm komutlara ulaşabilirsin.\n"
+                "📌 **Prefix:** `!`\n\n"
                 "**Başlangıç için önerilen ayarlar:**\n"
-                "`!ayarla logkanal #kanal` → Mesaj logları\n"
-                "`!ayarla girişlog #kanal` → Giriş/çıkış logları\n"
-                "`!ayarla seslog #kanal` → Ses kanalı logları\n"
-                "`!ayarla modlog #kanal` → Moderasyon logları\n"
-                "`!ayarla küfürfiltre` → Küfür filtresini aç\n"
-                "`!ayarla linkfiltre` → Link filtresini aç"
+                "`/ayarla logkanal` → Mesaj logları\n"
+                "`/ayarla girişlog` → Giriş/çıkış logları\n"
+                "`/ayarla modlog` → Moderasyon logları\n"
+                "`/ayarla küfürfiltre` → Küfür filtresini aç\n"
+                "`/ayarla linkfiltre` → Link filtresini aç"
             ),
             color=Colors.SUCCESS,
             timestamp=datetime.datetime.utcnow()
@@ -79,7 +61,6 @@ class Events(commands.Cog, name="Olaylar"):
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         embed.set_footer(text=f"Toplam {len(self.bot.guilds)} sunucudayım!")
 
-        # Sistem kanalı varsa oraya gönder, yoksa ilk metin kanalına dene
         target_channel = guild.system_channel
         if target_channel is None:
             for channel in guild.text_channels:
@@ -93,37 +74,25 @@ class Events(commands.Cog, name="Olaylar"):
             except discord.Forbidden:
                 pass
 
-        # Bot durumunu güncelle
         await self.bot.change_presence(
             activity=discord.Activity(
                 type=discord.ActivityType.watching,
-                name=f"{len(self.bot.guilds)} sunucu | !yardım"
+                name=f"{len(self.bot.guilds)} sunucu | /yardım"
             )
         )
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild: discord.Guild):
-        """Bot bir sunucudan çıkarıldığında çalışır."""
         print(f"[-] Sunucudan çıkarıldı: {guild.name} (ID: {guild.id})")
-
-        # Bot durumunu güncelle
         await self.bot.change_presence(
             activity=discord.Activity(
                 type=discord.ActivityType.watching,
-                name=f"{len(self.bot.guilds)} sunucu | !yardım"
+                name=f"{len(self.bot.guilds)} sunucu | /yardım"
             )
         )
 
-    # ─────────────────────────────────────────────
-    # ROL DEĞİŞİKLİKLERİ
-    # ─────────────────────────────────────────────
-
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
-        """
-        Üye güncellemelerini dinler.
-        Rol ekleme/çıkarma ve takma ad değişikliklerini loglar.
-        """
         from database import db
         settings = await db.get_guild_settings(after.guild.id)
         if not settings["mod_log"]:
@@ -133,7 +102,6 @@ class Events(commands.Cog, name="Olaylar"):
         if not log_channel:
             return
 
-        # ── Rol değişikliği kontrolü ──────────────
         added_roles   = set(after.roles) - set(before.roles)
         removed_roles = set(before.roles) - set(after.roles)
 
@@ -144,26 +112,18 @@ class Events(commands.Cog, name="Olaylar"):
                 timestamp=datetime.datetime.utcnow()
             )
             embed.set_thumbnail(url=after.display_avatar.url)
-            embed.add_field(name="Kullanıcı",
-                            value=f"{after} ({after.id})", inline=False)
+            embed.add_field(name="Kullanıcı", value=f"{after} ({after.id})", inline=False)
             if added_roles:
-                embed.add_field(
-                    name="➕ Eklenen Roller",
-                    value=", ".join(r.mention for r in added_roles),
-                    inline=False
-                )
+                embed.add_field(name="➕ Eklenen Roller",
+                                value=", ".join(r.mention for r in added_roles), inline=False)
             if removed_roles:
-                embed.add_field(
-                    name="➖ Kaldırılan Roller",
-                    value=", ".join(r.mention for r in removed_roles),
-                    inline=False
-                )
+                embed.add_field(name="➖ Kaldırılan Roller",
+                                value=", ".join(r.mention for r in removed_roles), inline=False)
             try:
                 await log_channel.send(embed=embed)
             except discord.Forbidden:
                 pass
 
-        # ── Takma ad değişikliği ──────────────────
         if before.nick != after.nick:
             embed = discord.Embed(
                 title="✏️ Takma Ad Değişti",
@@ -171,24 +131,16 @@ class Events(commands.Cog, name="Olaylar"):
                 timestamp=datetime.datetime.utcnow()
             )
             embed.set_thumbnail(url=after.display_avatar.url)
-            embed.add_field(name="Kullanıcı",
-                            value=f"{after} ({after.id})", inline=False)
-            embed.add_field(name="Önceki",
-                            value=before.nick or "*Takma ad yoktu*", inline=True)
-            embed.add_field(name="Yeni",
-                            value=after.nick or "*Takma ad kaldırıldı*", inline=True)
+            embed.add_field(name="Kullanıcı", value=f"{after} ({after.id})", inline=False)
+            embed.add_field(name="Önceki", value=before.nick or "*Takma ad yoktu*", inline=True)
+            embed.add_field(name="Yeni", value=after.nick or "*Takma ad kaldırıldı*", inline=True)
             try:
                 await log_channel.send(embed=embed)
             except discord.Forbidden:
                 pass
 
-    # ─────────────────────────────────────────────
-    # KANAL DEĞİŞİKLİKLERİ
-    # ─────────────────────────────────────────────
-
     @commands.Cog.listener()
     async def on_guild_channel_create(self, channel: discord.abc.GuildChannel):
-        """Yeni kanal oluşturulduğunda loglar."""
         from database import db
         settings = await db.get_guild_settings(channel.guild.id)
         if not settings["mod_log"]:
@@ -198,11 +150,11 @@ class Events(commands.Cog, name="Olaylar"):
             return
 
         channel_type = {
-            discord.TextChannel:  "💬 Metin",
-            discord.VoiceChannel: "🔊 Ses",
+            discord.TextChannel:     "💬 Metin",
+            discord.VoiceChannel:    "🔊 Ses",
             discord.CategoryChannel: "📁 Kategori",
-            discord.StageChannel: "🎤 Sahne",
-            discord.ForumChannel: "💬 Forum",
+            discord.StageChannel:    "🎤 Sahne",
+            discord.ForumChannel:    "💬 Forum",
         }.get(type(channel), "Bilinmiyor")
 
         embed = discord.Embed(
@@ -220,7 +172,6 @@ class Events(commands.Cog, name="Olaylar"):
 
     @commands.Cog.listener()
     async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel):
-        """Kanal silindiğinde loglar."""
         from database import db
         settings = await db.get_guild_settings(channel.guild.id)
         if not settings["mod_log"]:
@@ -241,13 +192,8 @@ class Events(commands.Cog, name="Olaylar"):
         except discord.Forbidden:
             pass
 
-    # ─────────────────────────────────────────────
-    # ROL OLUŞTURMA / SİLME
-    # ─────────────────────────────────────────────
-
     @commands.Cog.listener()
     async def on_guild_role_create(self, role: discord.Role):
-        """Yeni rol oluşturulduğunda loglar."""
         from database import db
         settings = await db.get_guild_settings(role.guild.id)
         if not settings["mod_log"]:
@@ -272,7 +218,6 @@ class Events(commands.Cog, name="Olaylar"):
 
     @commands.Cog.listener()
     async def on_guild_role_delete(self, role: discord.Role):
-        """Rol silindiğinde loglar."""
         from database import db
         settings = await db.get_guild_settings(role.guild.id)
         if not settings["mod_log"]:
@@ -293,16 +238,8 @@ class Events(commands.Cog, name="Olaylar"):
         except discord.Forbidden:
             pass
 
-    # ─────────────────────────────────────────────
-    # BAN / UNBAN OLAYLARI (audit log'dan kim banlıyor)
-    # ─────────────────────────────────────────────
-
     @commands.Cog.listener()
     async def on_member_ban(self, guild: discord.Guild, user: discord.User):
-        """
-        Herhangi bir yolla gerçekleşen ban işlemini loglar.
-        (Komut üzerinden değil, Discord arayüzünden yapılan banları da yakalar.)
-        """
         from database import db
         settings = await db.get_guild_settings(guild.id)
         if not settings["mod_log"]:
@@ -325,7 +262,6 @@ class Events(commands.Cog, name="Olaylar"):
 
     @commands.Cog.listener()
     async def on_member_unban(self, guild: discord.Guild, user: discord.User):
-        """Yasak kaldırma işlemini loglar."""
         from database import db
         settings = await db.get_guild_settings(guild.id)
         if not settings["mod_log"]:
@@ -346,13 +282,8 @@ class Events(commands.Cog, name="Olaylar"):
         except discord.Forbidden:
             pass
 
-    # ─────────────────────────────────────────────
-    # HATA AYIKLAMA — KOMUT ÖNCE/SONRA
-    # ─────────────────────────────────────────────
-
     @commands.Cog.listener()
     async def on_command(self, ctx: commands.Context):
-        """Her komut çalıştırıldığında konsola loglar (debug amaçlı)."""
         print(
             f"[CMD] {ctx.author} ({ctx.author.id}) "
             f"| Guild: {ctx.guild.name if ctx.guild else 'DM'} "
@@ -361,17 +292,7 @@ class Events(commands.Cog, name="Olaylar"):
         )
 
     @commands.Cog.listener()
-    async def on_command_completion(self, ctx: commands.Context):
-        """Komut başarıyla tamamlandığında çalışır."""
-        pass  # İleride istatistik toplanabilir
-
-    # ─────────────────────────────────────────────
-    # BULK MESAJ SİLME LOGU
-    # ─────────────────────────────────────────────
-
-    @commands.Cog.listener()
     async def on_bulk_message_delete(self, messages: list):
-        """Toplu mesaj silindiğinde (purge) loglar."""
         if not messages:
             return
         guild = messages[0].guild
@@ -392,20 +313,17 @@ class Events(commands.Cog, name="Olaylar"):
             timestamp=datetime.datetime.utcnow()
         )
         embed.add_field(name="Silinen Mesaj", value=str(len(messages)))
-        embed.add_field(name="Kanal",
-                        value=messages[0].channel.mention if messages[0].channel else "Bilinmiyor")
+        embed.add_field(
+            name="Kanal",
+            value=messages[0].channel.mention if messages[0].channel else "Bilinmiyor"
+        )
         try:
             await log_channel.send(embed=embed)
         except discord.Forbidden:
             pass
 
-    # ─────────────────────────────────────────────
-    # DAVET TAKIBI (Basit)
-    # ─────────────────────────────────────────────
-
     @commands.Cog.listener()
     async def on_invite_create(self, invite: discord.Invite):
-        """Yeni davet oluşturulduğunda loglar."""
         if not invite.guild:
             return
         from database import db
@@ -423,7 +341,7 @@ class Events(commands.Cog, name="Olaylar"):
         )
         embed.add_field(name="Oluşturan",
                         value=str(invite.inviter) if invite.inviter else "Bilinmiyor")
-        embed.add_field(name="Kod",       value=invite.code)
+        embed.add_field(name="Kod",   value=invite.code)
         embed.add_field(name="Kanal",
                         value=invite.channel.mention if invite.channel else "Bilinmiyor")
         embed.add_field(name="Kullanım",
@@ -437,5 +355,4 @@ class Events(commands.Cog, name="Olaylar"):
 
 
 async def setup(bot: commands.Bot):
-    """Cog'u bota yükle."""
     await bot.add_cog(Events(bot))
