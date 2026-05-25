@@ -85,6 +85,12 @@ class DiscordBot(commands.Bot):
     async def on_ready(self):
         print(f"\n[BOT] ✅ {self.user} olarak bağlandı!")
         print(f"[BOT] 🏁 Başlangıç süresi: {(datetime.datetime.utcnow() - self.start_time).total_seconds():.2f}s")
+    async def on_message(self, message):
+        # Bot kendi mesajlarına veya diğer botlara cevap vermesin
+        if message.author.bot:
+            return
+        # Bu satır, mesajları komut olarak işlemene yarar!
+        await self.process_commands(message)
 
 async def main():
     bot = DiscordBot()
