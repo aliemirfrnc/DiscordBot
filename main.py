@@ -23,6 +23,11 @@ class DiscordBot(commands.Bot):
         self.start_time = datetime.datetime.utcnow()
 
     async def setup_hook(self):
+        async def setup_hook(self):
+        print("[BOT] Slash komutları gönderiliyor...")
+        # Bütün sunucular için komutları senkronize et
+        synced = await self.tree.sync()
+        print(f"[BOT] {len(synced)} adet komut senkronize edildi!")
         print("[BOT] Kurulum başlıyor...")
         
         # Cog yükleme işlemi
